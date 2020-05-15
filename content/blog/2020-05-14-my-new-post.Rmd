@@ -1,0 +1,15 @@
+---
+title: My New Post
+author: ''
+date: '2020-05-14'
+slug: my-new-post
+categories: []
+tags: []
+description: ''
+---
+
+Some lovely python
+
+```{python}
+print("hello world")
+```

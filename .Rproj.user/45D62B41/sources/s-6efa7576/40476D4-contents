@@ -1,0 +1,297 @@
+---
+title: "Project 1: Specific Language Impairment in Children"
+author: "Anusha Naeem"
+date: '3/15/20'
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE, fig.align = "center", warning = F, message = F,
+                      tidy=TRUE, tidy.opts=list(width.cutoff=60),R.options=list(max.print=100))
+```
+
+
+##Introduction
+
+
+  The dataset that I chose for this project was obtained from Kaggle, and contains information about diagnosing specific language impairments in children. Specific language impairment is characterized by a lack of language ability compared to peers, but no obvious physical or mental disability. This dataset compiled information from two different studies, both of which contain results from children trying to complete a wordless picture task. The children were given wordless picture stories and asked to tell the story for a particular picture. I chose this dataset because I’m interesting in potentially becoming a pediatrician in the future, and am really interested in language in general and how it can affect people. This dataset was interesting in helping me investigate how language development can vary in children, and what those differences can mean.  
+
+  There were a lot of variables in the original dataset, and I ended up splitting the large dataset into two separate ones, and joining them back together after creating a variable called “ID” in Excel. Even still, there were a lot of variables in the original dataset that I didn’t find understandable or useful, so I ended up removing them in Excel before uploading the dataset to RStudio. 
+  The variables I kept are defined as follows: -
+  
+  
+* ID = a patient ID for each observation
+* sex = the gender of the child
+* age_years = age of the child in years
+* corpus = the study (one of two) that the observation was taken from
+* group = designation for the child as either SLI (specific language impairment) or TD (typical development)
+* child_TNW= total number of words spoken by the child
+* child_TNS= total number of sentences spoken by the child (it's noted that higher TNS is more likely for SLI children)
+* examiner_TNW= total # of words spoken by the examiner (children with SLI are more likely to require support from the examiner)
+* freqttr = frequency of word types to word token ratio, a measure that divides word types by word tokens and provides a rough measure of lexical diversity
+* r2iverbs = ratio of raw to inflected verbs (children with SLI often have difficulty with the morphemes -ed, -s, be, and do, which results in the use of raw verbs instead of their inflected forms.)
+* morwords = number of words in the %mor tier
+* numpostags = number of different part-of-speech tags
+* ndos = number of time the word 'do' is used
+* repetition = counts the number of repetitions in a sentece
+* retracing = number of retracings,  defined as when a speaker abandons an utterance but then continues again
+* fillers = counts the number of fillers used in total
+* s1gppl= the perplexity of this sample in comparison to a language model trained on all the SLI group for this corpora except the sample
+* averagesyl = average number of syllables per word 
+* mluwords = mean length of utterance of words 
+* mlumorphemes = mean length of utterance of morphemes (same as above but for sentences instead of words)
+* mlu100utts= mean length of utterance of 1st 100 words (nly use the first 100 words to calculate MLU)
+* verbutt = number of utterances consisting of verbs
+* dss =Developmental Sentence Score, A measure of sentence complexity
+* ipsyn_total=  Index of Productive Syntax Score , another measure of sentence complexity  
+  
+Since this dataset already had a variable (group) defining whether or not the child had been diagnosed with a specific language impairment, I expected to see significant differences in the values of all these different measurements between SLI and TD groups. I also expected to see probably two distinct clusters in my cluster analysis, since I anticipated that the differences in the measures above would lead to two distinct groups of observations in my data.
+
+
+```{r}
+lang1 <-read.csv("lang1.csv")
+lang2 <- read.csv("lang2.csv")
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+glimpse(lang1)
+glimpse(lang2)
+```
+*******
+
+##Joining
+
+```{r}
+
+lang1 <-lang1 %>% select(ID, sex,age_years,corpus, group, child_TNW,	child_TNS, examiner_TNW,	freq_ttr,	r_2_i_verbs,	mor_words,	num_pos_tags,	n_dos,	repetition,	retracing, fillers)
+
+glimpse(lang1)
+glimpse(lang2)
+
+lang1a <- lang1 %>% na.omit()
+lang2a <- lang2 %>% na.omit()
+
+glimpse(lang1a)
+glimpse(lang2a)
+
+joineddata <-lang1a %>% inner_join(lang2a, by = "ID")
+joineddata <-joineddata %>% filter(sex == "male"| sex == "female")
+#had one case where sex wasn't specified
+
+glimpse(joineddata)
+
+```
+
+
+The join that I ended up using for this dataset was inner_join(). This join is one that will drop off any NA’s that appear once you join the datasets together.  I only wanted to keep the observations that had values for each of the variables (aka, only the children who’d been tested with all of the measures, not just some of them) because I wanted to have as much information as possible for each of my observations. Dropping observations could be problematic because it can limit the sample size of your data, but becauseI had a decent number of observations I felt safe going with inner_join() despite the fact that I may have lost some observations. For this reason, I ended up using inner_join(). Surprisingly, I didn’t have any dropped observations at all--this means that all 1,045 of the children studied in this dataset had been tested for each of the measures presented as variables. If there had been any children that didn’t have a value for, repetition, for example, they would’ve been dropped since I chose to use an inner_join(). My data was also already tidy, so I ended up not having to use pivot_wider or pivot_longer at this stage!  
+
+******
+
+##Wrangling
+```{r}
+
+
+joineddata %>% filter(group== "SLI" ) %>% arrange(total_error)
+joineddata %>% filter(group== "TD") %>% arrange(total_error)
+
+joineddata %>% filter(group =="SLI") %>% arrange(dss)
+joineddata %>% filter(group =="TD") %>% arrange(dss)
+
+joineddata %>% mutate(TNW_ratio = child_TNW/examiner_TNW ) 
+
+
+
+averages <- joineddata %>% summarize_if(is.numeric, mean, na.rm=T)
+sds <- joineddata %>% summarize_if(is.numeric, sd, na.rm=T)
+mins <-joineddata %>% summarize_if(is.numeric, min, na.rm=T)
+maxs <-joineddata %>% summarize_if(is.numeric, max, na.rm=T) 
+
+as.data.frame(averages)
+averages_long <- averages %>% 
+  pivot_longer(c("age_years","child_TNW", "child_TNS", "examiner_TNW",
+                 "freq_ttr", "r_2_i_verbs", "mor_words","num_pos_tags",
+                 "n_dos", "repetition", "retracing", "fillers", "s_1g_ppl", 
+                 "total_syl", "average_syl", "mlu_words", "verb_utt", "dss", 
+                 "ipsyn_total", "word_errors", "total_error"), 
+               names_to="variable", values_to="avg_values")
+
+as.data.frame(sds)
+sds_long <- sds %>% 
+  pivot_longer(c("age_years","child_TNW", "child_TNS", "examiner_TNW",
+                 "freq_ttr", "r_2_i_verbs", "mor_words","num_pos_tags",
+                 "n_dos", "repetition", "retracing", "fillers", "s_1g_ppl", 
+                 "total_syl", "average_syl", "mlu_words", "verb_utt", "dss", 
+                 "ipsyn_total", "word_errors", "total_error"), 
+               names_to="variable", values_to= "sd_values")
+
+
+as.data.frame(mins)
+mins_long <- mins %>% 
+  pivot_longer(c("age_years","child_TNW", "child_TNS", "examiner_TNW",
+                 "freq_ttr", "r_2_i_verbs", "mor_words","num_pos_tags",
+                 "n_dos", "repetition", "retracing", "fillers", "s_1g_ppl", 
+                 "total_syl", "average_syl", "mlu_words", "verb_utt", "dss",
+                 "ipsyn_total", "word_errors", "total_error"), 
+               names_to="variable", values_to= "min_values")
+
+as.data.frame(maxs)
+
+maxs_long <- mins %>% 
+  pivot_longer(c("age_years","child_TNW", "child_TNS", "examiner_TNW",
+                 "freq_ttr", "r_2_i_verbs", "mor_words","num_pos_tags",
+                 "n_dos", "repetition", "retracing", "fillers", "s_1g_ppl",
+                 "total_syl", "average_syl", "mlu_words", "verb_utt", "dss", 
+                 "ipsyn_total", "word_errors", "total_error"),
+               names_to="variable", values_to= "max_values")
+
+averages_long %>% full_join(sds_long, by = "variable") %>% full_join(mins_long, by = "variable") %>% full_join(maxs_long, by = "variable") %>% select(variable, avg_values, sd_values, min_values, max_values)
+  
+  
+```
+  
+In creating some overall summary statistics (not grouped_by anything) I used pivot_longer to make the table a little easier to read. There were quite a few numeric variables in my dataset, and having all of the summary stats (mean, median, sd, etc) all separate was a bit hard to read. I ended up using pivot_longer on each of the results of my general summary statistics to get a column called “variable” which was just the measure (child_TNW, repetition, fillers, dss, etc) and once I had done that for each of my general summary statistics, I joined them all together to create an easy to read table that had all of my summary statistics in one place. 
+  
+  
+```{r}  
+#summarize by group
+
+joineddata %>% group_by(group) %>% 
+  summarize(avg_child_TNW = mean(child_TNW), avg_child_TNS = mean(child_TNS),
+  avg_examiner_TNW=mean(examiner_TNW),avg_repitition = mean(repetition),
+  avg_retracing = mean(retracing),  avg_fillers = mean(fillers),
+  avg_total_syl = mean(total_syl), avg_dss = mean(dss), 
+  avg_word_errors = mean(word_errors))
+
+joineddata %>% group_by(sex) %>% 
+  summarize(avg_child_TNW = mean(child_TNW), avg_child_TNS = mean(child_TNS),
+  avg_examiner_TNW=mean(examiner_TNW),avg_repitition = mean(repetition),
+  avg_retracing = mean(retracing),  avg_fillers = mean(fillers),
+  avg_total_syl = mean(total_syl), avg_dss = mean(dss), 
+  avg_word_errors = mean(word_errors))
+
+joineddata %>% group_by(corpus) %>% 
+  summarize(avg_child_TNW = mean(child_TNW), avg_child_TNS = mean(child_TNS),
+  avg_examiner_TNW=mean(examiner_TNW),avg_repitition = mean(repetition),
+  avg_retracing = mean(retracing),  avg_fillers = mean(fillers),
+  avg_total_syl = mean(total_syl), avg_dss = mean(dss), 
+  avg_word_errors = mean(word_errors))
+
+joineddata %>% group_by(group, sex) %>% 
+  summarize(avg_child_TNW = mean(child_TNW), avg_child_TNS = mean(child_TNS),
+  avg_examiner_TNW=mean(examiner_TNW),avg_repitition = mean(repetition),
+  avg_retracing = mean(retracing),  avg_fillers = mean(fillers),
+  avg_total_syl = mean(total_syl), avg_dss = mean(dss), 
+  avg_word_errors = mean(word_errors))
+
+joineddata %>% group_by(group, corpus) %>% 
+  summarize(avg_child_TNW = mean(child_TNW), avg_child_TNS = mean(child_TNS),
+  avg_examiner_TNW=mean(examiner_TNW),avg_repitition = mean(repetition),
+  avg_retracing = mean(retracing),  avg_fillers = mean(fillers),
+  avg_total_syl = mean(total_syl), avg_dss = mean(dss), 
+  avg_word_errors = mean(word_errors))
+
+joineddata %>% group_by(sex, corpus) %>% 
+  summarize(avg_child_TNW = mean(child_TNW), avg_child_TNS = mean(child_TNS),
+  avg_examiner_TNW=mean(examiner_TNW),avg_repitition = mean(repetition),
+  avg_retracing = mean(retracing),  avg_fillers = mean(fillers),
+  avg_total_syl = mean(total_syl), avg_dss = mean(dss), 
+  avg_word_errors = mean(word_errors))
+
+```
+
+When I made summary statistics based on group, I was surprised to find that the means for my variables between groups (SLI and TD children) were surprisingly similar almost across the board. The numbers didn’t appear too far off to me, and though I couldn’t tell if they were significantly different just by looking at the numbers, it was interesting to me that the numbers really didn’t seem that different between children who had speech language impairments and those didn’t--I would’ve expected to see some pretty different numbers. When I grouped by sex and corpus, I still didn’t see any drastic differences between male and female kids or between the ENNI and Gilman studies. The average values for each of the measurements of specific language impairments didn’t seem to be very good at distinguishing between SLI and TD kids was definitely interesting to me--how did the original creators of this dataset decide which kids were SLI and which were TD, if all of these measures seemed to be giving similar number for both?
+
+
+
+******
+
+##Visualizing
+```{r}
+
+ggplot(data= joineddata, aes(x= age_years, y=examiner_TNW, color= group))+ geom_point() +
+  scale_color_manual(values = c("#39998D", "#BFE1D9"))+
+  scale_y_continuous(lim=c(1,300),breaks=seq(0, 300, 50) ) +
+  labs(x= "child's age", y="examiner's total # of words") + 
+  ggtitle("Examiner Total Number of Words based on Child's Age") + theme_light()
+```
+For this plot, I wanted to see if there was any relationship between the child’s age and the number of words the examiner had to say during the test, and if this varied between kids with SLI and TD kids. There are a couple of kids with SLI that had pretty high intervention from their examiners, but on average there’s no real association. Younger kids may have needed slightly more intervention than older kids, but the scatterplot is pretty even throughout. 
+
+
+
+```{R}
+#plot2
+
+ggplot(data=joineddata, aes(x= group, y=child_TNS ))+
+  geom_bar(aes(fill=group),stat="summary", fun.y="mean") +
+  geom_errorbar(stat="summary", width=0.65) +
+  scale_fill_manual(values = c("#39998D", "#BFE1D9")) +
+  labs(y= "child's total number of sentences") +
+  ggtitle("Child's Total Number of Sentences Based on Group") +theme_light()
+  
+```
+For this plot, I decided to look at the average number of sentences spoken by children based on group, because those values looked to be the most different when I was investigating my summary statistics. When I added error bars to the plots and saw that they didn’t overlap, I concluded that there must be a significant difference between these two groups in terms of the child’s total number of sentences. But what was especially interesting about this data is that TD children actually showed significantly higher number of sentences than kids with SLI--this was really surprising because from the original information provided with this dataset, kids with SLI were expected to have a higher number of sentences spoken than TD kids. So the results from this graph essentially proved the opposite of this expectation, which I thought was super surprising! Some possible reasons for this may be that it was just this particular population of kids tested that happened to end up with a higher number of sentences for TD kids than SLI kids, but given that there are 1044 observations in this dataset, I wonder how reasonable that explanation is. Another potential reason may be that measuring the total number of sentences spoken by kids isn’t an accurate predictor of SLI development in children and that the measure itself is inaccurate, which would definitely be something to look into further. 
+
+
+```{R}
+#selecting only some of my many variables to make this correlation heatmap!
+
+joineddata%>%select_if(is.numeric)%>% 
+  select(age_years, child_TNS, child_TNW, examiner_TNW, fillers, 
+         repetition, retracing, total_syl, verb_utt, word_errors, 
+         total_error)%>%cor%>%as.data.frame%>%
+rownames_to_column%>%pivot_longer(-1)%>%
+ggplot(aes(rowname,name,fill=value))+geom_tile()+ 
+scale_fill_gradient(high= "#39998D", low = "#BFE1D9")+
+geom_text(aes(label=round(value,2)))+
+xlab("")+ylab("") + 
+theme(axis.text.x = element_text(angle=45, hjust=1)) +
+ggtitle("Correlation Heatmap")
+
+```
+
+For this final plot, I ended up only using some of the variables for the correlation heatmap because having all 26 variables made the plot a bit hard to read. The correlation heatmap showed some of the strongest correlations between total syllables and the total number of words spoken by the child (which makes logical sense--the more words you speak, the more syllables you’re also speaking), child total number of words and child total number of sentences, and total error and child total number of words. The correlation between age and examiner’s total number of words was weakly negative, which is in line with what I discovered from my scatterplot above. 
+
+*******
+##Cluster Analysis
+
+```{r}
+
+library(cluster)
+pam_dat<-joineddata%>%select(repetition,total_syl,dss)
+sil_width<-vector()
+for(i in 3:10){
+pam_fit <- pam(pam_dat, k = i)
+sil_width[i] <- pam_fit$silinfo$avg.width
+}
+ggplot()+geom_line(aes(x= 1:10, y=sil_width))+scale_x_continuous(name="k",breaks=1:10)
+
+
+pam1 <- joineddata %>% select(repetition, total_syl, dss) %>% pam(k=3)
+pam1
+
+final<-joineddata%>%mutate(cluster=as.factor(pam1$clustering))
+confmat<-final%>%group_by(group)%>%count(cluster)%>%arrange(desc(n))%>%
+pivot_wider(names_from="cluster",values_from="n",values_fill = list('n'=0))
+confmat
+round(sum(diag(as.matrix(confmat[,2:4])))/sum(confmat[,2:4]),4)
+
+
+ggplot(final, aes(x=repetition, y=dss, color=cluster))+geom_point() +
+  scale_x_continuous(lim=c(0,100)) + ggtitle("Cluster Scatterplot")
+
+plot(pam1,which=2)
+
+```
+
+For my cluster analysis, I decided to use PAM and to cluster by 3 of my numeric variables--repetition, total_syl, and dss. I wanted to choose variables that could represent a variety of characteristics of a given child’s speech pattern. Things like the number of syllables/words spoken, the structure of the child’s sentences and how exactly they speak, and the complexity of their sentences are all different aspects that can influence whether or not they’re classified as having SLI. Once I’d picked my variables, I needed to determine the number of clusters which I did with a silhouette plot. The k value at the highest point for the plot was at 3, so that’s the number of clusters I inputted into my PAM. Plotting the scatterplot based on the clustering from my PAM didn’t yield very exciting results--the data really didn’t look like it was clustered in any significant way, and the assignment of points to clusters seemed to be almost by chance. Computing the average silhouette width yielded a value of 0.55, which technically indicates a reasonable structure, though it was a bit hard to see on the scatterplot. I checked the accuracy as well, since I knew the data ‘should’ have been grouped by the variable ‘group’ into 2 clusters, but returned back a value of 0.4722, which indicated that the clustering wasn’t super accurate in determining SLI kids from TD kids. Also, if anything, I would’ve expected to see two clusters, one for SLI and one for TD, since that’s what all of these variables were aimed at distinguishing between, so for the silhouette width plot to recommend 3 clusters was already not a great sign. It’s interesting that the clustering didn’t yield super significant results and definitely not the results I expected, but that is in line with what I’d discovered from my summary statistics and plots earlier in this report. 
+
+
+
+```{R, echo=F}
+## DO NOT DELETE THIS BLOCK!
+sessionInfo()
+Sys.time()
+Sys.info()
+```

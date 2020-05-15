@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Anusha Naeem" />
+    <meta name="description" content="Describe your website">
+    <link rel="shortcut icon" type="image/x-icon" href="../img/favicon.ico">
+    <title>Project 2</title>
+    <meta name="generator" content="Hugo 0.70.0" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="../css/main.css" />
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:200,400,200bold,400old" />
+    
+    <!--[if lt IE 9]>
+			<script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+			<script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+		<![endif]-->
+
+    
+  </head>
+
+  <body>
+    <div id="wrap">
+
+      
+      <nav class="navbar navbar-default">
+  <div class="container">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="../"><i class="fa fa-home"></i></a>
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <div class="navbar-collapse collapse" id="navbar">
+      <ul class="nav navbar-nav navbar-right">
+      
+        
+        <li><a href="../blog/">BLOG</a></li>
+        
+        <li><a href="../projects/">PROJECTS</a></li>
+        
+        <li><a href="../resume.pdf">RESUME</a></li>
+        
+      
+      </ul>
+    </div>
+  </div>
+</nav>
+
+      
+      <div class="container">
+        <div class="blog-post">
+          <h3>
+            <strong><a href="../project2/">Project 2</a></strong>
+          </h3>
+        </div>
+        <div class="blog-title">
+          <h4>
+          January 1, 0001
+            &nbsp;&nbsp;
+            
+          </h4>
+        </div>
+        <div class="panel panel-default">
+          <div class="panel-body">
+            <div class="blogpost">
+              
+
+
+<p>This dataset is about chronic granulotomous disease (CGD), which is an inherited primary immunodeficiency disease that increases the body’s susceptibility to infections caused by certain bacteria and fungi. The data are from a controlled trial of gamma interferon treatment in patients with CGD to test the time it took for a serious infection to develop (if it developed at all). There were 203 observations in this dataset, and the variables in this dataset are: <em>id– the subject’s identification numner </em>center– the center at which the patients were enrolled into the study <em>random–the date of randomization </em>treat–indicates whether the patient received a placebo or the gamma interferon treatment (rIFN-g) <em>sex– the sex of the patient </em>age–the age of the patient at the time they were enrolled in the study <em>height–the patient’s height at the time they were enrolled in the study </em>weight– the patient’s weight at the time they were enrolled in the study <em>inherit–the pattern of inheritance for how the patient got the disease (autosomal or x linked) </em>steroids– whether steroids were used at study entry <em>propylac–wheter prophylactic antibiotics were used at study entry </em>hos.cat–categorization of the enrollment centers into 4 groups <em>tstart, tstop–start and end of each time interval </em>status– whether or not the interval ended in infection (1=the interval ends with an infection) *enum–observation number within subject</p>
+<hr />
+<pre class="r"><code>library(dplyr)
+library(tidyverse)
+library(survival)
+library(sandwich)
+library(lmtest)
+library(ggplot2)
+library(glmnet)
+library(vegan)
+
+data(cgd)
+cgd$inherit &lt;- gsub(&quot;-&quot;, &quot;&quot;, cgd$inherit)
+
+# MANOVA
+
+man1 &lt;- manova(cbind(age, weight, height) ~ hos.cat, data = cgd)
+summary(man1)</code></pre>
+<pre><code>##            Df Pillai approx F num Df den Df   Pr(&gt;F)   
+## hos.cat     3 0.1064   2.4392      9    597 0.009935 **
+## Residuals 199                                          
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code># ANOVA
+summary.aov(man1)</code></pre>
+<pre><code>##  Response age :
+##              Df  Sum Sq Mean Sq F value   Pr(&gt;F)   
+## hos.cat       3  1311.5  437.15  5.3387 0.001475 **
+## Residuals   199 16294.8   81.88                    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+##  Response weight :
+##              Df Sum Sq Mean Sq F value   Pr(&gt;F)   
+## hos.cat       3   5787 1928.97  4.2443 0.006209 **
+## Residuals   199  90442  454.48                    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+##  Response height :
+##              Df Sum Sq Mean Sq F value   Pr(&gt;F)   
+## hos.cat       3  15357  5119.1   5.539 0.001134 **
+## Residuals   199 183913   924.2                    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code># t tests
+pairwise.t.test(cgd$age, cgd$hos.cat, p.adj = &quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  cgd$age and cgd$hos.cat 
+## 
+##                  US:NIH  US:other Europe:Amsterdam
+## US:other         0.01126 -        -               
+## Europe:Amsterdam 0.24892 0.00048  -               
+## Europe:other     0.61564 0.11769  0.13423         
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>pairwise.t.test(cgd$weight, cgd$hos.cat, p.adj = &quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  cgd$weight and cgd$hos.cat 
+## 
+##                  US:NIH US:other Europe:Amsterdam
+## US:other         0.0042 -        -               
+## Europe:Amsterdam 0.8598 0.0073   -               
+## Europe:other     0.2470 0.2728   0.2209          
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>pairwise.t.test(cgd$height, cgd$hos.cat, p.adj = &quot;none&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  cgd$height and cgd$hos.cat 
+## 
+##                  US:NIH US:other Europe:Amsterdam
+## US:other         0.0022 -        -               
+## Europe:Amsterdam 0.6178 0.0013   -               
+## Europe:other     0.3987 0.1047   0.2208          
+## 
+## P value adjustment method: none</code></pre>
+<pre class="r"><code>1 - 0.95^18</code></pre>
+<pre><code>## [1] 0.6027857</code></pre>
+<pre class="r"><code>0.05/32</code></pre>
+<pre><code>## [1] 0.0015625</code></pre>
+<p>I performed 22 tests (1 MANOVA, 2 ANOVA, 18 t tests) and the type 1 error rate is .6027857. With the bonferroni correction, the new alpha value is 0.0015625. The MANOVA results (F value of 2.4392 and p value of 0.009935) indicate there’s some significant difference in at least one of the variables based on hos.cat. The results of the ANOVA indicate that all three (age, weight, and height) exhibit significant differences based on hos.cat. (p values of 0.001475, 0.006209, and 0.001134 respectively.) With the new adjusted alpha value, the t tests indicate that for age and height, the sites that differed significantly were US:other and Europe:Amsterdam. For weight, none of the sites differed significantly with the adjusted alpha value. The assumptions of a MANOVA are 1. Random samples, independent observations, 2. Multivariate normality of DVs (or each group ), 3. Homogeneity of within-group covariance matrices, 4. Linear relationships among DVs, 5. No extreme univariate or multivariate outliers and 6. No multicollinearity. These assumptions are not likely to be met by my data for a variety of reasons–for example, my data has some observations that come from the same patient, so this already violates the first assumption.</p>
+<pre class="r"><code># randomization test (PERMANOVA)
+
+
+select &lt;- dplyr::select
+
+dists &lt;- cgd %&gt;% select(age, weight, height) %&gt;% dist()
+
+adonis(dists ~ hos.cat, data = cgd)</code></pre>
+<pre><code>## 
+## Call:
+## adonis(formula = dists ~ hos.cat, data = cgd) 
+## 
+## Permutation: free
+## Number of permutations: 999
+## 
+## Terms added sequentially (first to last)
+## 
+##            Df SumsOfSqs MeanSqs F.Model      R2 Pr(&gt;F)   
+## hos.cat     3     22456  7485.2  5.1249 0.07172  0.002 **
+## Residuals 199    290650  1460.6         0.92828          
+## Total     202    313105                 1.00000          
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code># PERMANOVA by hand
+SST &lt;- sum(dists^2)/203
+
+SSW &lt;- cgd %&gt;% group_by(hos.cat) %&gt;% select(age, weight, height) %&gt;% 
+    do(d = dist(.[3:4], &quot;euclidean&quot;)) %&gt;% ungroup() %&gt;% summarise(sum(d[[2]]^2)/50 + 
+    sum(d[[3]]^2)/50 + sum(d[[4]]^2)/50) %&gt;% pull
+
+F_obs &lt;- ((SST - SSW)/3)/(SSW/199)  #observed F statistic
+# compute null distribution for F
+Fs &lt;- replicate(1000, {
+    new &lt;- cgd %&gt;% mutate(hos.cat = sample(hos.cat))  #permute the species vector
+    SSW &lt;- new %&gt;% group_by(hos.cat) %&gt;% select(age, weight, 
+        height) %&gt;% do(d = dist(.[3:4], &quot;euclidean&quot;)) %&gt;% ungroup() %&gt;% 
+        summarise(sum(d[[2]]^2)/50 + sum(d[[3]]^2)/50 + sum(d[[4]]^2)/50) %&gt;% 
+        pull
+    ((SST - SSW)/2)/(SSW/147)  #calculate new F on randomized data
+})
+
+{
+    hist(Fs, prob = T)
+    abline(v = F_obs, col = &quot;red&quot;, add = T)
+}</code></pre>
+<p><img src="../project2_files/figure-html/unnamed-chunk-2-1.png" width="768" style="display: block; margin: auto;" /> The null hypothesis is that for age, height, and weight, the means for each hos.cat are the same. The alternative hypothesis is that for at least one of these variables, at least one hos.cat mean is different. The p value from our PERMANOVA (from adonis) is 0.003, which means that we can reject the null hypothesis.</p>
+<pre class="r"><code># linear regression
+
+set.seed(123)
+
+data(cgd)
+cgd$age_c &lt;- cgd$age - mean(cgd$age)
+cgd$weight_c &lt;- cgd$weight - mean(cgd$weight)
+cgd$height_c &lt;- cgd$height - mean(cgd$height)
+
+fit1 &lt;- lm(weight ~ age_c * height_c * sex, data = cgd)
+summary(fit1)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = weight ~ age_c * height_c * sex, data = cgd)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -17.914  -3.771  -0.401   2.016  33.156 
+## 
+## Coefficients:
+##                           Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              37.723890   0.886035  42.576  &lt; 2e-16 ***
+## age_c                     1.101847   0.160025   6.885 7.71e-11 ***
+## height_c                  0.375951   0.042842   8.775 8.55e-16 ***
+## sexfemale                 0.567266   1.904510   0.298 0.766132    
+## age_c:height_c            0.009298   0.002472   3.761 0.000224 ***
+## age_c:sexfemale          -0.737236   0.237635  -3.102 0.002205 ** 
+## height_c:sexfemale        0.259572   0.086932   2.986 0.003190 ** 
+## age_c:height_c:sexfemale -0.012306   0.008123  -1.515 0.131418    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 7.282 on 195 degrees of freedom
+## Multiple R-squared:  0.8925, Adjusted R-squared:  0.8887 
+## F-statistic: 231.4 on 7 and 195 DF,  p-value: &lt; 2.2e-16</code></pre>
+<pre class="r"><code>qplot(x = age_c, y = weight, color = sex, data = cgd) + stat_smooth(method = &quot;lm&quot;, 
+    se = FALSE, fullrange = TRUE)</code></pre>
+<p><img src="../project2_files/figure-html/unnamed-chunk-3-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># checking assumptions!
+
+# (linearity/homoskedasticity)
+resids &lt;- fit1$residuals
+fitvals &lt;- fit1$fitted.values
+ggplot() + geom_point(aes(fitvals, resids)) + geom_hline(yintercept = 0, 
+    color = &quot;red&quot;)</code></pre>
+<p><img src="../project2_files/figure-html/unnamed-chunk-3-2.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># (normality)
+ggplot() + geom_qq(aes(sample = resids)) + geom_qq_line(aes(sample = resids))</code></pre>
+<p><img src="../project2_files/figure-html/unnamed-chunk-3-3.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>coeftest(fit1, vcov = vcovHC(fit1))</code></pre>
+<pre><code>## 
+## t test of coefficients:
+## 
+##                            Estimate Std. Error t value  Pr(&gt;|t|)    
+## (Intercept)              37.7238899  6.4919686  5.8109 2.498e-08 ***
+## age_c                     1.1018474  1.5159373  0.7268    0.4682    
+## height_c                  0.3759512  0.4116117  0.9134    0.3622    
+## sexfemale                 0.5672662  6.8901092  0.0823    0.9345    
+## age_c:height_c            0.0092976  0.0193030  0.4817    0.6306    
+## age_c:sexfemale          -0.7372362  1.5384238 -0.4792    0.6323    
+## height_c:sexfemale        0.2595718  0.4252603  0.6104    0.5423    
+## age_c:height_c:sexfemale -0.0123059  0.0212412 -0.5793    0.5630    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<p>Interpreting this model, we can see that age and height account for some of the changes in weight. For every 1 increase in average age, weight increases by 1.101847. For every 1 increase in average height, weight increases by 0.375951. When we look at the interaction between age and height, we see a 0.009298 increase in weight. The interaction between age and being female and height and being female lead to a 0.737236 decrease and 0.259572 increase respectively. The regression before robust standard error indicating that the following variables explained a significant portion of the variance in weight: age, height, the interaction between age and height, the interaction between age and being female, and the interaction between height and being female. After recomputing these regression results with robust standard errors, none of the variables had a significant effect on weight. All of the SE values inscreased with robust standard errors as compared to the original model. The proportion of the variation of weight that this model explaines (Rsquared) is 0.8925.</p>
+<pre class="r"><code># bootstrapped SE&#39;s
+
+
+samp_distn &lt;- replicate(5000, {
+    boot_dat &lt;- sample_frac(cgd, replace = T)
+    fit1 &lt;- lm(weight ~ age_c * height_c * sex, data = boot_dat)
+    coef(fit1)
+})
+## Estimated SEs
+samp_distn %&gt;% t %&gt;% as.data.frame %&gt;% summarize_all(sd)</code></pre>
+<pre><code>##   (Intercept)     age_c  height_c sexfemale age_c:height_c age_c:sexfemale
+## 1    3.562271 0.8424165 0.2287013  4.323788     0.01065312       0.8785972
+##   height_c:sexfemale age_c:height_c:sexfemale
+## 1          0.2520912               0.01417817</code></pre>
+<p>The bootstrapped SE’s are larger than the SE’s of the original model, but smaller than the robust SE’s.</p>
+<pre class="r"><code># logistic regression
+
+fit2 &lt;- glm(status ~ treat + inherit, data = cgd, family = &quot;binomial&quot;)
+summary(fit2)</code></pre>
+<pre><code>## 
+## Call:
+## glm(formula = status ~ treat + inherit, family = &quot;binomial&quot;, 
+##     data = cgd)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -1.1777  -1.0865  -0.7198   1.2711   1.7190  
+## 
+## Coefficients:
+##                  Estimate Std. Error z value Pr(&gt;|z|)   
+## (Intercept)       -0.2175     0.2187  -0.994  0.32002   
+## treatrIFN-g       -1.0009     0.3159  -3.168  0.00153 **
+## inheritautosomal   0.2182     0.3094   0.705  0.48056   
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 268.47  on 202  degrees of freedom
+## Residual deviance: 256.99  on 200  degrees of freedom
+## AIC: 262.99
+## 
+## Number of Fisher Scoring iterations: 4</code></pre>
+<pre class="r"><code>exp(-1.000887)</code></pre>
+<pre><code>## [1] 0.3675533</code></pre>
+<p>From this logistic regression, we can see that when we control for inheritance pattern, the treatment rIFN-g produces significantly different results from the placebo in infection status. That means this treatment could be effective in preventing infections, since it produces results that are significantly different from the placebo. The intercept from this logistic regression can be interpreted (after exponentiating , so e^-1.000887) as the odds of having an infection when receving treatment rIFN-g are 0.3675533 times the odds for being on the placebo. Thus, being on the treatment means you are less likely to have an infection than when on the placebo.</p>
+<pre class="r"><code># confusion matrix
+
+probs &lt;- predict(fit2, type = &quot;response&quot;)
+table(predict = as.numeric(probs &gt; 0.5), truth = cgd$status) %&gt;% 
+    addmargins</code></pre>
+<pre><code>##        truth
+## predict   0   1 Sum
+##     0   103  54 157
+##     1    24  22  46
+##     Sum 127  76 203</code></pre>
+<pre class="r"><code>## RUN THE FOLLOWING CODE TO SAVE THE CLASSIFICTION
+## DIAGNOSTICS FUNCTION:
+
+## GIVE IT PREDICTED PROBS AND TRUTH LABELS: IT RETURNS
+## VARIOUS DIAGNOSTICS
+
+class_diag &lt;- function(probs, truth) {
+    
+    # CONFUSION MATRIX: CALCULATE ACCURACY, TPR, TNR, PPV
+    tab &lt;- table(factor(probs &gt; 0.5, levels = c(&quot;FALSE&quot;, &quot;TRUE&quot;)), 
+        truth)
+    acc = sum(diag(tab))/sum(tab)
+    sens = tab[2, 2]/colSums(tab)[2]
+    spec = tab[1, 1]/colSums(tab)[1]
+    ppv = tab[2, 2]/rowSums(tab)[2]
+    
+    if (is.numeric(truth) == FALSE &amp; is.logical(truth) == FALSE) 
+        truth &lt;- as.numeric(truth) - 1
+    
+    # CALCULATE EXACT AUC
+    ord &lt;- order(probs, decreasing = TRUE)
+    probs &lt;- probs[ord]
+    truth &lt;- truth[ord]
+    
+    TPR = cumsum(truth)/max(1, sum(truth))
+    FPR = cumsum(!truth)/max(1, sum(!truth))
+    
+    dup &lt;- c(probs[-1] &gt;= probs[-length(probs)], FALSE)
+    TPR &lt;- c(0, TPR[!dup], 1)
+    FPR &lt;- c(0, FPR[!dup], 1)
+    
+    n &lt;- length(TPR)
+    auc &lt;- sum(((TPR[-1] + TPR[-n])/2) * (FPR[-1] - FPR[-n]))
+    
+    data.frame(acc, sens, spec, ppv, auc)
+}
+
+class_diag(probs, cgd$status)</code></pre>
+<pre><code>##         acc      sens      spec       ppv       auc
+## 1 0.6157635 0.2894737 0.8110236 0.4782609 0.6272275</code></pre>
+<p>The accuracy of this model, or the proportion of correct cases is 0.6157635. The sensitvity was 0.2894737, and this is the proportion of actual infection cases that were classified as such, or the true positive rate. The specificity of this model was 0.8110236, and this is the proportion of non infection cases that were classified as such. The precision, or the number of infection cases that were classified as such, was 0.4782609.</p>
+<pre class="r"><code># logit graph
+
+cgd$logit &lt;- predict(fit2, type = &quot;link&quot;)
+
+ggplot(cgd, aes(logit, fill = status)) + geom_density(alpha = 0.3)</code></pre>
+<p><img src="../project2_files/figure-html/unnamed-chunk-7-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># roc and AUC
+
+library(plotROC)
+
+ROCplot &lt;- ggplot(cgd) + geom_roc(aes(d = status, m = probs), 
+    n.cuts = 0)
+ROCplot</code></pre>
+<p><img src="../project2_files/figure-html/unnamed-chunk-8-1.png" width="768" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>calc_auc(ROCplot)</code></pre>
+<pre><code>##   PANEL group       AUC
+## 1     1    -1 0.6272275</code></pre>
+<pre class="r"><code># cross validation
+
+set.seed(1234)
+k = 10
+
+data1 &lt;- cgd[sample(nrow(cgd)), ]
+folds &lt;- cut(seq(1:nrow(cgd)), breaks = k, labels = F)
+
+diags &lt;- NULL
+for (i in 1:k) {
+    
+    train &lt;- data1[folds != i, ]
+    test &lt;- data1[folds == i, ]
+    
+    truth &lt;- test$status
+    
+    fit3 &lt;- glm(status ~ treat + inherit, data = train, family = &quot;binomial&quot;)
+    probs1 &lt;- predict(fit3, newdata = test, type = &quot;response&quot;)
+    
+    diags &lt;- rbind(diags, class_diag(probs1, truth))
+}
+
+summarize_all(diags, mean)</code></pre>
+<pre><code>##         acc       sens      spec ppv       auc
+## 1 0.5759524 0.08869048 0.8776557 NaN 0.6379088</code></pre>
+<pre class="r"><code># lasso
+
+x &lt;- -model.matrix(fit2)
+y &lt;- as.matrix(cgd$status)
+
+cv &lt;- cv.glmnet(x, y, family = &quot;binomial&quot;)
+
+lasso1 &lt;- glmnet(x, y, , family = &quot;binomial&quot;, lambda = cv$lambda.1se)
+coef(lasso1)</code></pre>
+<pre><code>## 4 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
+##                           s0
+## (Intercept)      -0.47860375
+## (Intercept)       .         
+## treatrIFN-g       0.08578663
+## inheritautosomal  .</code></pre>
+<pre class="r"><code># cv for lasso
+
+
+set.seed(1234)
+k = 10
+
+data1 &lt;- cgd[sample(nrow(cgd)), ]
+folds &lt;- cut(seq(1:nrow(cgd)), breaks = k, labels = F)
+
+diags &lt;- NULL
+for (i in 1:k) {
+    
+    train &lt;- data1[folds != i, ]
+    test &lt;- data1[folds == i, ]
+    
+    truth &lt;- test$status
+    
+    fit4 &lt;- glm(status ~ treat, data = train, family = &quot;binomial&quot;)
+    probs2 &lt;- predict(fit4, newdata = test, type = &quot;response&quot;)
+    
+    diags &lt;- rbind(diags, class_diag(probs2, truth))
+}
+
+summarize_all(diags, mean)</code></pre>
+<pre><code>##         acc sens spec ppv     auc
+## 1 0.6254762    0    1 NaN 0.61496</code></pre>
+<pre><code>## R version 3.4.4 (2018-03-15)
+## Platform: x86_64-pc-linux-gnu (64-bit)
+## Running under: Ubuntu 18.04.4 LTS
+## 
+## Matrix products: default
+## BLAS: /usr/lib/x86_64-linux-gnu/openblas/libblas.so.3
+## LAPACK: /usr/lib/x86_64-linux-gnu/libopenblasp-r0.2.20.so
+## 
+## locale:
+##  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+##  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+##  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+##  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+##  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+## [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+## 
+## attached base packages:
+## [1] methods   stats     graphics  grDevices utils     datasets  base     
+## 
+## other attached packages:
+##  [1] plotROC_2.2.1    vegan_2.4-6      lattice_0.20-35  permute_0.9-4   
+##  [5] glmnet_2.0-16    foreach_1.4.4    Matrix_1.2-12    lmtest_0.9-37   
+##  [9] zoo_1.8-6        sandwich_2.5-1   survival_2.41-3  forcats_0.4.0   
+## [13] stringr_1.4.0    purrr_0.3.3      readr_1.3.1      tidyr_1.0.0.9000
+## [17] tibble_2.1.3     ggplot2_3.2.1    tidyverse_1.3.0  dplyr_0.8.3     
+## [21] knitr_1.28      
+## 
+## loaded via a namespace (and not attached):
+##  [1] Rcpp_1.0.2       lubridate_1.7.4  assertthat_0.2.1 zeallot_0.1.0   
+##  [5] digest_0.6.20    plyr_1.8.4       R6_2.4.0         cellranger_1.1.0
+##  [9] backports_1.1.4  reprex_0.3.0     evaluate_0.14    httr_1.4.1      
+## [13] blogdown_0.18    pillar_1.4.2     rlang_0.4.2      lazyeval_0.2.2  
+## [17] readxl_1.3.1     rstudioapi_0.10  rmarkdown_2.1    labeling_0.3    
+## [21] splines_3.4.4    munsell_0.5.0    broom_0.5.2      compiler_3.4.4  
+## [25] modelr_0.1.5     xfun_0.13        pkgconfig_2.0.2  mgcv_1.8-23     
+## [29] htmltools_0.3.6  tidyselect_0.2.5 bookdown_0.18    codetools_0.2-15
+## [33] crayon_1.3.4     dbplyr_1.4.2     withr_2.1.2      MASS_7.3-49     
+## [37] grid_3.4.4       nlme_3.1-131     jsonlite_1.6     gtable_0.3.0    
+## [41] lifecycle_0.1.0  DBI_1.0.0        magrittr_1.5     formatR_1.7     
+## [45] scales_1.0.0     cli_1.1.0        stringi_1.4.3    fs_1.3.1        
+## [49] xml2_1.2.2       generics_0.0.2   vctrs_0.2.1      iterators_1.0.10
+## [53] tools_3.4.4      glue_1.3.1       hms_0.5.3        parallel_3.4.4  
+## [57] yaml_2.2.0       colorspace_1.4-1 cluster_2.0.6    rvest_0.3.5     
+## [61] haven_2.2.0</code></pre>
+<pre><code>## [1] &quot;2020-05-14 22:51:46 CDT&quot;</code></pre>
+<pre><code>##                                        sysname 
+##                                        &quot;Linux&quot; 
+##                                        release 
+##                            &quot;4.15.0-99-generic&quot; 
+##                                        version 
+## &quot;#100-Ubuntu SMP Wed Apr 22 20:32:56 UTC 2020&quot; 
+##                                       nodename 
+##                   &quot;educcomp01.ccbb.utexas.edu&quot; 
+##                                        machine 
+##                                       &quot;x86_64&quot; 
+##                                          login 
+##                                      &quot;unknown&quot; 
+##                                           user 
+##                                      &quot;an26887&quot; 
+##                                 effective_user 
+##                                      &quot;an26887&quot;</code></pre>
+
+              <hr>
+              <div class="related-posts">
+                <h5>Related Posts</h5>
+                
+              </div>
+            </div>
+          </div>
+          <hr>
+        <div class="disqus">
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+
+    (function() {
+      
+      
+      if (window.location.hostname == "localhost")
+        return;
+
+      var disqus_shortname = '';
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  <a href="http://disqus.com/" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+        </div>
+      </div>
+      
+    </div>
+
+    
+    <footer>
+  <div id="footer">
+    <div class="container">
+      <p class="text-muted">&copy; All rights reserved. Powered by <a href="https://gohugo.io/">Hugo</a> and
+      <a href="http://www.github.com/nurlansu/hugo-sustain/">sustain</a> with ♥</p>
+    </div>
+  </div>
+</footer>
+<div class="footer"></div>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="../js/docs.min.js"></script>
+<script src="../js/main.js"></script>
+
+<script src="../js/ie10-viewport-bug-workaround.js"></script>
+
+
+    
+  </body>
+</html>

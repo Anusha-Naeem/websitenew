@@ -1,0 +1,299 @@
+---
+title: "Project 2"
+author: "Anusha Naeem"
+date: "5/1/20"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r global_options, include=FALSE}
+library(knitr)
+opts_chunk$set(fig.align="center", fig.height=5, message=FALSE, warning=FALSE, fig.width=8, tidy.opts=list(width.cutoff=60),tidy=TRUE)
+```
+
+
+
+This dataset is about chronic granulotomous disease (CGD), which is an inherited primary immunodeficiency disease that increases the body's susceptibility to infections caused by certain bacteria and fungi. The data are from a controlled trial of gamma interferon treatment in patients with CGD to test the time it took for a serious infection to develop (if it developed at all). There were 203 observations in this dataset, and the variables in this dataset are: 
+*id-- the subject's identification numner
+*center-- the center at which the patients were enrolled into the study
+*random--the date of randomization
+*treat--indicates whether the patient received a placebo or the gamma interferon treatment (rIFN-g)
+*sex-- the sex of the patient
+*age--the age of the patient at the time they were enrolled in the study
+*height--the patient's height at the time they were enrolled in the study
+*weight-- the patient's weight at the time they were enrolled in the study
+*inherit--the pattern of inheritance for how the patient got the disease (autosomal or x linked)
+*steroids-- whether steroids were used at study entry
+*propylac--wheter prophylactic antibiotics were used at study entry
+*hos.cat--categorization of the enrollment centers into 4 groups
+*tstart, tstop--start and end of each time interval
+*status-- whether or not the interval ended in infection (1=the interval ends with an infection)
+*enum--observation number within subject
+
+*******
+
+
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(survival)
+library(sandwich)
+library(lmtest)
+library(ggplot2)
+library(glmnet)
+library(vegan)
+
+data(cgd)
+cgd$inherit <- gsub("-", "", cgd$inherit)
+
+#MANOVA 
+
+man1 <- manova(cbind(age, weight, height)~hos.cat,data=cgd)
+summary(man1)
+
+#ANOVA
+summary.aov(man1) 
+
+#t tests
+pairwise.t.test(cgd$age, cgd$hos.cat, p.adj = "none")
+pairwise.t.test(cgd$weight, cgd$hos.cat, p.adj = "none")
+pairwise.t.test(cgd$height, cgd$hos.cat, p.adj = "none")
+
+1-.95^18
+
+.05/32
+
+
+
+
+
+```
+I performed 22 tests (1 MANOVA, 2 ANOVA, 18 t tests) and the type 1 error rate is .6027857. With the bonferroni correction, the new alpha value is 0.0015625. The MANOVA results (F value of 2.4392 and p value of 0.009935) indicate there's some significant difference in at least one of the variables based on hos.cat. The results of the ANOVA indicate that all three (age, weight, and height) exhibit significant differences based on hos.cat. (p values of 0.001475, 0.006209, and 0.001134 respectively.) With the new adjusted alpha value, the t tests indicate that for age and height, the sites that differed significantly were US:other and Europe:Amsterdam. For weight, none of the sites differed significantly with the adjusted alpha value. The assumptions of a MANOVA are 1. Random samples, independent observations, 2. Multivariate normality of DVs (or each group ), 3. Homogeneity of within-group covariance matrices, 4. Linear relationships among DVs, 5. No extreme univariate or multivariate outliers and 6. No multicollinearity. These assumptions are not likely to be met by my data for a variety of reasons--for example, my data has some observations that come from the same patient, so this already violates the first assumption. 
+```{r}
+# randomization test (PERMANOVA)
+
+
+select <- dplyr::select
+
+dists <- cgd%>%select(age, weight, height)%>%dist()
+
+adonis(dists~hos.cat,data=cgd)
+
+
+
+
+#PERMANOVA by hand
+SST<- sum(dists^2)/203
+
+SSW<-cgd%>%group_by(hos.cat)%>%select(age, weight, height)%>%
+do(d=dist(.[3:4],"euclidean"))%>%ungroup()%>%
+summarise(sum(d[[2]]^2)/50 + sum(d[[3]]^2)/50+ sum(d[[4]]^2)/50)%>%pull
+
+F_obs<-((SST-SSW)/3)/(SSW/199) #observed F statistic
+# compute null distribution for F
+Fs<-replicate(1000,{
+new<-cgd%>%mutate(hos.cat=sample(hos.cat)) #permute the species vector
+SSW<-new%>%group_by(hos.cat)%>%select(age, weight, height)%>%
+do(d=dist(.[3:4],"euclidean"))%>%ungroup()%>%
+summarise(sum(d[[2]]^2)/50 + sum(d[[3]]^2)/50+ sum(d[[4]]^2)/50)%>%pull
+((SST-SSW)/2)/(SSW/147) #calculate new F on randomized data
+})
+
+{hist(Fs,prob = T); abline(v=F_obs, col="red", add=T)}
+
+
+
+```
+The null hypothesis is that for age, height, and weight, the means for each hos.cat are the same. The alternative hypothesis is that for at least one of these variables, at least one hos.cat mean is different. The p value from our PERMANOVA (from adonis) is 0.003, which means that we can reject the null hypothesis. 
+```{r}
+#linear regression
+
+set.seed(123)
+
+data(cgd)
+cgd$age_c <- cgd$age - mean(cgd$age)
+cgd$weight_c <- cgd$weight - mean(cgd$weight)
+cgd$height_c <- cgd$height - mean(cgd$height)
+
+fit1 <- lm(weight ~ age_c*height_c*sex ,data=cgd)
+summary(fit1)
+
+
+qplot(x = age_c, y = weight, color = sex, data = cgd) +
+stat_smooth(method = "lm", se = FALSE, fullrange = TRUE)
+
+#checking assumptions!
+
+#(linearity/homoskedasticity)
+resids<-fit1$residuals
+fitvals<-fit1$fitted.values
+ggplot()+geom_point(aes(fitvals,resids))+geom_hline(yintercept=0, color='red')
+
+#(normality)
+ggplot()+geom_qq(aes(sample=resids))+geom_qq_line(aes(sample=resids))
+
+
+coeftest(fit1, vcov = vcovHC(fit1))
+
+```
+Interpreting this model, we can see that age and height account for some of the changes in weight. For every 1 increase in average age, weight increases by  1.101847. For every 1 increase in average height, weight increases by 0.375951. When we look at the interaction between age and height, we see a 0.009298 increase in weight. The interaction between age and being female and height and being female lead to a 0.737236 decrease and 0.259572 increase respectively. The regression before robust standard error indicating that the following variables explained a significant portion of the variance in weight: age, height, the interaction between age and height, the interaction between age and being female, and the interaction between height and being female. After recomputing these regression results with robust standard errors, none of the variables had a significant effect on weight. All of the SE values inscreased with robust standard errors as compared to the original model. The proportion of the variation of weight that this model explaines (Rsquared) is 0.8925. 
+```{r}
+#bootstrapped SE's
+
+
+samp_distn<-replicate(5000, {
+boot_dat <- sample_frac(cgd, replace=T) 
+fit1 <- lm(weight ~ age_c*height_c*sex ,data=boot_dat) 
+coef(fit1) 
+})
+## Estimated SEs
+samp_distn %>% t %>% as.data.frame %>% summarize_all(sd)
+
+```
+The bootstrapped SE's are larger than the SE's of the original model, but smaller than the robust SE's. 
+```{r}
+#logistic regression
+
+fit2 <- glm(status ~  treat + inherit, data = cgd, family = "binomial")
+summary(fit2)
+exp(-1.000887)
+
+```
+From this logistic regression, we can see that when we control for inheritance pattern, the treatment rIFN-g produces significantly different results from the placebo in infection status. That means this treatment could be effective in preventing infections, since it produces results that are significantly different from the placebo. The intercept from this logistic regression can be interpreted (after exponentiating , so e^-1.000887) as the odds of having an infection when receving treatment rIFN-g are 0.3675533 times the odds for being on the placebo. Thus, being on the treatment means you are less likely to have an infection than when on the placebo. 
+```{r}
+#confusion matrix 
+
+probs <- predict(fit2, type = "response")
+table(predict = as.numeric(probs > 0.5), truth = cgd$status) %>% addmargins
+
+## RUN THE FOLLOWING CODE TO SAVE THE CLASSIFICTION DIAGNOSTICS FUNCTION:
+
+## GIVE IT PREDICTED PROBS AND TRUTH LABELS: IT RETURNS VARIOUS DIAGNOSTICS
+
+class_diag <- function(probs,truth){
+  
+  #CONFUSION MATRIX: CALCULATE ACCURACY, TPR, TNR, PPV
+  tab<-table(factor(probs>.5,levels=c("FALSE","TRUE")),truth)
+  acc=sum(diag(tab))/sum(tab)
+  sens=tab[2,2]/colSums(tab)[2]
+  spec=tab[1,1]/colSums(tab)[1]
+  ppv=tab[2,2]/rowSums(tab)[2]
+
+  if(is.numeric(truth)==FALSE & is.logical(truth)==FALSE) truth<-as.numeric(truth)-1
+  
+  #CALCULATE EXACT AUC
+  ord<-order(probs, decreasing=TRUE)
+  probs <- probs[ord]; truth <- truth[ord]
+  
+  TPR=cumsum(truth)/max(1,sum(truth)) 
+  FPR=cumsum(!truth)/max(1,sum(!truth))
+  
+  dup<-c(probs[-1]>=probs[-length(probs)], FALSE)
+  TPR<-c(0,TPR[!dup],1); FPR<-c(0,FPR[!dup],1)
+  
+  n <- length(TPR)
+  auc<- sum( ((TPR[-1]+TPR[-n])/2) * (FPR[-1]-FPR[-n]) )
+
+  data.frame(acc,sens,spec,ppv,auc)
+}
+
+class_diag(probs, cgd$status)
+```
+The accuracy of this model, or the proportion of correct cases is 0.6157635. The sensitvity was 0.2894737, and this is the proportion of actual infection cases that were classified as such, or the true positive rate. The specificity of this model was 0.8110236, and this is the proportion of non infection cases that were classified as such. The precision, or the number of infection cases that were classified as such, was 0.4782609. 
+```{r}
+#logit graph
+
+cgd$logit<-predict(fit2, type = "link")
+
+ggplot(cgd,aes(logit, fill=status))+geom_density(alpha=.3)
+```
+
+```{r}
+#roc and AUC
+
+library(plotROC)
+
+ROCplot <- ggplot(cgd) + geom_roc(aes(d = status, m = probs ),
+n.cuts = 0)
+ROCplot
+
+calc_auc(ROCplot)
+
+
+```
+
+
+```{r}
+# cross validation
+
+set.seed(1234)
+k = 10
+
+data1 <- cgd[sample(nrow(cgd)), ]  
+folds <- cut(seq(1:nrow(cgd)), breaks = k, labels = F)  
+
+diags <- NULL
+for (i in 1:k) {
+    
+    train <- data1[folds != i, ]  
+    test <- data1[folds == i, ] 
+    
+    truth <- test$status
+    
+    fit3 <- glm(status ~ treat + inherit, data = train, family = "binomial")
+    probs1 <- predict(fit3, newdata = test, type = "response")
+    
+    diags <- rbind(diags, class_diag(probs1, truth))  
+}
+
+summarize_all(diags, mean)  
+```
+```{r}
+#lasso
+
+x <- -model.matrix(fit2)
+y <- as.matrix(cgd$status)
+
+cv <- cv.glmnet(x, y, family = "binomial")
+
+lasso1 <- glmnet(x, y, , family = "binomial", lambda = cv$lambda.1se)
+coef(lasso1)
+
+```
+
+```{r}
+#cv for lasso
+
+
+set.seed(1234)
+k = 10
+
+data1 <- cgd[sample(nrow(cgd)), ] 
+folds <- cut(seq(1:nrow(cgd)), breaks = k, labels = F)  
+
+diags <- NULL
+for (i in 1:k) {
+    
+    train <- data1[folds != i, ]  
+    test <- data1[folds == i, ]  
+    
+    truth <- test$status
+    
+    fit4 <- glm(status ~ treat, data = train, family = "binomial")
+    probs2 <- predict(fit4, newdata = test, type = "response")
+    
+    diags <- rbind(diags, class_diag(probs2, truth))  
+}
+
+summarize_all(diags, mean)  
+
+```
+
+```{R, echo=F}
+## DO NOT DELETE THIS BLOCK!
+sessionInfo()
+Sys.time()
+Sys.info()
+```

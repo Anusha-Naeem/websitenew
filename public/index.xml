@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Project 3 Portfolio</title>
+    <link>/</link>
+    <description>Recent content on Project 3 Portfolio</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-US</language>
+    <lastBuildDate>Sun, 02 Oct 2016 22:55:05 -0400</lastBuildDate>
+    
+	<atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>My New Post</title>
+      <link>/blog/my-new-post/</link>
+      <pubDate>Thu, 14 May 2020 00:00:00 +0000</pubDate>
+      
+      <guid>/blog/my-new-post/</guid>
+      <description> Some lovely python
+print(&amp;quot;hello world&amp;quot;) ## hello world </description>
+    </item>
+    
+    <item>
+      <title>Projects</title>
+      <link>/projects/</link>
+      <pubDate>Sun, 02 Oct 2016 22:55:05 -0400</pubDate>
+      
+      <guid>/projects/</guid>
+      <description>Projects Here are some projects I have recently completed:
+  Exploratory Data Analysis with Tidyverse Tools
+  Modeling, Testing, and Classification
+  </description>
+    </item>
+    
+    <item>
+      <title>Project 1: Specific Language Impairment in Children</title>
+      <link>/project1/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/project1/</guid>
+      <description>Introduction The dataset that I chose for this project was obtained from Kaggle, and contains information about diagnosing specific language impairments in children. Specific language impairment is characterized by a lack of language ability compared to peers, but no obvious physical or mental disability. This dataset compiled information from two different studies, both of which contain results from children trying to complete a wordless picture task. The children were given wordless picture stories and asked to tell the story for a particular picture.</description>
+    </item>
+    
+    <item>
+      <title>Project 2</title>
+      <link>/project2/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/project2/</guid>
+      <description>This dataset is about chronic granulotomous disease (CGD), which is an inherited primary immunodeficiency disease that increases the body’s susceptibility to infections caused by certain bacteria and fungi. The data are from a controlled trial of gamma interferon treatment in patients with CGD to test the time it took for a serious infection to develop (if it developed at all). There were 203 observations in this dataset, and the variables in this dataset are: id– the subject’s identification numner center– the center at which the patients were enrolled into the study random–the date of randomization treat–indicates whether the patient received a placebo or the gamma interferon treatment (rIFN-g) sex– the sex of the patient age–the age of the patient at the time they were enrolled in the study height–the patient’s height at the time they were enrolled in the study weight– the patient’s weight at the time they were enrolled in the study inherit–the pattern of inheritance for how the patient got the disease (autosomal or x linked) steroids– whether steroids were used at study entry propylac–wheter prophylactic antibiotics were used at study entry hos.</description>
+    </item>
+    
+  </channel>
+</rss>

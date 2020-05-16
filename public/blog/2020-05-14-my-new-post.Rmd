@@ -8,8 +8,43 @@ tags: []
 description: ''
 ---
 
+![](/blog/2020-05-14-my-new-post_files/help.jpg)
+
+
 Some lovely python
 
 ```{python}
 print("hello world")
 ```
+
+Python 'if/else' statements allow you to categorize a string in a variety of ways. Below, given the string "Failure is a bruise, not a tatoo" python can evaluate whether or not the character meets the criteria for each statement. If it meets the criteria, python will go to the next indented statement (print out a statement about the string), and if not it will move down to the next line to evaluate if the string meets those characteristics, and so on. 
+```{python}
+s = "Failure is a bruise, not a tatoo" 
+if len(s) < 10:
+ print(s, "is shorter than 10 characters")
+elif len(s) < 20:
+ print(s, "is shorter than 20 characters")
+else: 
+ print(s, "is 20+ characters")
+```
+
+You can also create functions in python that can be applied to multiple strings. The function below will count characters for the given sentence below. 
+```{python}
+def count_chars(sentence): 
+ counts = {} 
+ for c in sentence: 
+  if c in counts: 
+    counts[c]+=1 
+  else:
+    counts[c]=1 
+ 
+ for c in counts:
+    print(c, "appears", counts[c],"times")
+
+
+
+new_sentence = "Failure is a bruise, not a tatoo"
+count_chars(new_sentence)
+```
+
+

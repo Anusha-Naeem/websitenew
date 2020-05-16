@@ -72,9 +72,52 @@
               
 
 
+<div class="figure">
+<img src="../../blog/2020-05-14-my-new-post_files/help.jpg" />
+
+</div>
 <p>Some lovely python</p>
 <pre class="python"><code>print(&quot;hello world&quot;)</code></pre>
 <pre><code>## hello world</code></pre>
+<p>Python ‘if/else’ statements allow you to categorize a string in a variety of ways. Below, given the string “Failure is a bruise, not a tatoo” python can evaluate whether or not the character meets the criteria for each statement. If it meets the criteria, python will go to the next indented statement (print out a statement about the string), and if not it will move down to the next line to evaluate if the string meets those characteristics, and so on.</p>
+<pre class="python"><code>s = &quot;Failure is a bruise, not a tatoo&quot; 
+if len(s) &lt; 10:
+ print(s, &quot;is shorter than 10 characters&quot;)
+elif len(s) &lt; 20:
+ print(s, &quot;is shorter than 20 characters&quot;)
+else: 
+ print(s, &quot;is 20+ characters&quot;)</code></pre>
+<pre><code>## (&#39;Failure is a bruise, not a tatoo&#39;, &#39;is 20+ characters&#39;)</code></pre>
+<p>You can also create functions in python that can be applied to multiple strings. The function below will count characters for the given sentence below.</p>
+<pre class="python"><code>def count_chars(sentence): 
+ counts = {} 
+ for c in sentence: 
+  if c in counts: 
+    counts[c]+=1 
+  else:
+    counts[c]=1 
+ 
+ for c in counts:
+    print(c, &quot;appears&quot;, counts[c],&quot;times&quot;)
+
+
+
+new_sentence = &quot;Failure is a bruise, not a tatoo&quot;
+count_chars(new_sentence)</code></pre>
+<pre><code>## (&#39;a&#39;, &#39;appears&#39;, 4, &#39;times&#39;)
+## (&#39; &#39;, &#39;appears&#39;, 6, &#39;times&#39;)
+## (&#39;b&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;e&#39;, &#39;appears&#39;, 2, &#39;times&#39;)
+## (&#39;F&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;i&#39;, &#39;appears&#39;, 3, &#39;times&#39;)
+## (&#39;l&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;o&#39;, &#39;appears&#39;, 3, &#39;times&#39;)
+## (&#39;,&#39;, &#39;appears&#39;, 1, &#39;times&#39;)
+## (&#39;s&#39;, &#39;appears&#39;, 2, &#39;times&#39;)
+## (&#39;r&#39;, &#39;appears&#39;, 2, &#39;times&#39;)
+## (&#39;u&#39;, &#39;appears&#39;, 2, &#39;times&#39;)
+## (&#39;t&#39;, &#39;appears&#39;, 3, &#39;times&#39;)
+## (&#39;n&#39;, &#39;appears&#39;, 1, &#39;times&#39;)</code></pre>
 
               <hr>
               <div class="related-posts">

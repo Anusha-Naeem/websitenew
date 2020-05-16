@@ -17,8 +17,8 @@
       <pubDate>Thu, 14 May 2020 00:00:00 +0000</pubDate>
       
       <guid>/blog/my-new-post/</guid>
-      <description> Some lovely python
-print(&amp;quot;hello world&amp;quot;) ## hello world </description>
+      <description>Some lovely python
+print(&amp;quot;hello world&amp;quot;) ## hello world Python ‘if/else’ statements allow you to categorize a string in a variety of ways. Below, given the string “Failure is a bruise, not a tatoo” python can evaluate whether or not the character meets the criteria for each statement. If it meets the criteria, python will go to the next indented statement (print out a statement about the string), and if not it will move down to the next line to evaluate if the string meets those characteristics, and so on.</description>
     </item>
     
   </channel>
